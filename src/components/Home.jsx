@@ -35,6 +35,8 @@ const Home = () => {
                 1000,
                 'cutieee!!!',
                 1000,
+                'shubhamkar!!!',
+                1000,
                 'pookieee!!!',
                 1000,
                 'patootiee!!!',
