@@ -23,26 +23,22 @@ const FavoritesList = () => {
 }
 
 function App() {
-  const [activeSection, setActiveSection] = useState('home')
+  const [currentPage, setCurrentPage] = useState('home')
 
-  // Handle scroll and update active section
   useEffect(() => {
-    const handleScroll = () => {
-      const sections = document.querySelectorAll('section')
-      const scrollPosition = window.scrollY + window.innerHeight / 2
+    const sections = document.querySelectorAll('section')
 
-      sections.forEach(section => {
-        const top = section.offsetTop
-        const bottom = top + section.offsetHeight
-
-        if (scrollPosition >= top && scrollPosition < bottom) {
-          setActiveSection(section.id)
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setCurrentPage(entry.target.id)
         }
       })
-    }
+    }, { threshold: 0.5 })
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    sections.forEach(section => observer.observe(section))
+
+    return () => observer.disconnect()
   }, [])
 
   const scrollToSection = (sectionId) => {
@@ -62,7 +58,7 @@ function App() {
   return (
     <LikesProvider>
       <div className="w-full bg-white">
-        <Navbar currentPage={activeSection} setCurrentPage={scrollToSection} />
+        <Navbar currentPage={currentPage} setCurrentPage={scrollToSection} />
         
         <section id="home" className="h-screen w-full">
           <Home />
