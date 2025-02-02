@@ -32,8 +32,8 @@ const Navbar = ({ setCurrentPage, currentPage }) => {
           {/* Desktop Navigation - pushed to right */}
           <div className="hidden md:flex ml-auto space-x-6 pr-3">
             <NavItem page="home" label="Home" />
-            <NavItem page="upload" label="Upload" />
             <NavItem page="explore" label="Explore" />
+            <NavItem page="upload" label="Upload" />
             <NavItem page="favorites" label="Favorites" />
           </div>
 
