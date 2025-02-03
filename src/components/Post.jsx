@@ -1,11 +1,15 @@
 import { useLikes } from '../context/LikesContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
+import { usePosts } from '../context/PostsContext';
+import { ConfirmationModal } from './Modal';
 
-const Post = ({ id, color = "rose", description = "A cute moment..." }) => {
-  const { likedPosts, toggleLike } = useLikes()
+const Post = ({ id, color = "rose", description = "A cute moment...", imageUrl }) => {
+  const { likedPosts, toggleLike } = useLikes();
+  const { deletePost } = usePosts();
   const isLiked = likedPosts.some(post => post.id === id)
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 })
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleMouseMove = (e) => {
     const bounds = e.currentTarget.getBoundingClientRect()
@@ -14,6 +18,16 @@ const Post = ({ id, color = "rose", description = "A cute moment..." }) => {
     setMousePosition({ x, y })
   }
 
+  const handleDelete = async () => {
+    try {
+      await deletePost(id);
+      console.log('Post deleted successfully:', id);
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+      alert('Failed to delete post. Please try again.');
+    }
+  };
+
   return (
     <motion.div
       className="relative group"
@@ -21,9 +35,9 @@ const Post = ({ id, color = "rose", description = "A cute moment..." }) => {
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Enhanced cursor following glow */}
+      {/* Cursor following glow */}
       <motion.div
-        className="absolute -inset-10 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"
+        className="absolute -inset-10 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none"
         animate={{
           background: `
             radial-gradient(
@@ -46,53 +60,63 @@ const Post = ({ id, color = "rose", description = "A cute moment..." }) => {
       <motion.div
         className="relative bg-white rounded-xl overflow-hidden will-change-transform"
         whileHover={{ 
-          y: -12,
-          scale: 1.02,
+          scale: 1.05,
           transition: { 
             type: "spring",
             stiffness: 900,
             damping: 30,
-            mass: 0.5
+            mass: 0.5,
+            duration: 0.2
           }
         }}
         style={{
           boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <div className="w-64">
-          {/* Enhanced Polaroid Image Area */}
-          <div className={`w-full h-56 bg-${color}-200 relative overflow-hidden group/image`}>
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        {/* Add Delete Button */}
+        <motion.button
+          className="absolute top-2 right-2 z-10 p-2 bg-white/80 rounded-full
+            opacity-0 group-hover:opacity-100 transition-opacity duration-200
+            hover:bg-rose-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDeleteModal(true);
+          }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <svg
+            className="w-5 h-5 text-rose-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
             />
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%)',
-                backgroundSize: '200% 200%',
-                opacity: 0
-              }}
-              whileHover={{
-                opacity: 1,
-                transition: { duration: 0.3 }
-              }}
-              animate={{
-                backgroundPosition: ['200% 200%', '-50% -50%'],
-                transition: {
-                  duration: 1.5,
-                  repeat: Infinity,
-                  repeatType: 'reverse',
-                  ease: 'easeInOut'
-                }
-              }}
-            />
+          </svg>
+        </motion.button>
+
+        <div className="w-72"> {/* Increased width from w-64 to w-72 */}
+          {/* Image Area - Removed overlay effects */}
+          <div className="w-full h-72 relative overflow-hidden"> {/* Increased height from h-56 to h-72 */}
+            {imageUrl ? (
+              <img 
+                src={imageUrl} 
+                alt={description}
+                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+              />
+            ) : (
+              <div className={`w-full h-full bg-${color}-200`} />
+            )}
           </div>
           
           {/* Enhanced Bottom Section */}
           <motion.div 
             className="p-4 bg-white"
-            initial={{ background: 'rgba(255, 255, 255, 1)' }}
-            whileHover={{ background: 'rgba(255, 255, 255, 0.95)' }}
             transition={{ duration: 0.2 }}
           >
             <div className="flex items-start justify-between gap-2">
@@ -106,7 +130,7 @@ const Post = ({ id, color = "rose", description = "A cute moment..." }) => {
               
               {/* Simplified Like Button */}
               <motion.div 
-                onClick={() => toggleLike({ id, color, description })}
+                onClick={() => toggleLike({ id, color, description, imageUrl })} // Added imageUrl here
                 whileTap={{ scale: 0.85, transition: { duration: 0.1 } }}
                 whileHover={{ scale: 1.1, transition: { duration: 0.1 } }}
                 className="relative cursor-pointer"
@@ -147,6 +171,16 @@ const Post = ({ id, color = "rose", description = "A cute moment..." }) => {
           </motion.div>
         </div>
       </motion.div>
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </motion.div>
   )
 }

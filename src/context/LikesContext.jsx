@@ -1,26 +1,32 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react';
 
-const LikesContext = createContext()
+const LikesContext = createContext();
 
 export const LikesProvider = ({ children }) => {
-  const [likedPosts, setLikedPosts] = useState([])
+  const [likedPosts, setLikedPosts] = useState(() => {
+    const saved = localStorage.getItem('meowments_likes');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('meowments_likes', JSON.stringify(likedPosts));
+  }, [likedPosts]);
 
   const toggleLike = (post) => {
     setLikedPosts(prev => {
-      const isLiked = prev.find(p => p.id === post.id)
+      const isLiked = prev.find(p => p.id === post.id);
       if (isLiked) {
-        return prev.filter(p => p.id !== post.id)
-      } else {
-        return [...prev, post]
+        return prev.filter(p => p.id !== post.id);
       }
-    })
-  }
+      return [...prev, post];
+    });
+  };
 
   return (
     <LikesContext.Provider value={{ likedPosts, toggleLike }}>
       {children}
     </LikesContext.Provider>
-  )
-}
+  );
+};
 
-export const useLikes = () => useContext(LikesContext)
+export const useLikes = () => useContext(LikesContext);
