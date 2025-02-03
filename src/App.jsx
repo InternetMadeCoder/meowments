@@ -106,14 +106,30 @@ function App() {
 
 // New component to display posts
 const ExploreGrid = () => {
-  const { posts } = usePosts()
+  const { posts, loading, error } = usePosts();
   
+  if (loading) {
+    return (
+      <div className="text-center text-gray-500 py-12">
+        Loading posts...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-rose-500 py-12">
+        {error}
+      </div>
+    );
+  }
+
   if (posts.length === 0) {
     return (
       <div className="text-center text-gray-500 py-12">
         No posts yet! Be the first to share a moment.
       </div>
-    )
+    );
   }
 
   return (
@@ -122,7 +138,7 @@ const ExploreGrid = () => {
         <Post key={post.id} {...post} />
       ))}
     </div>
-  )
-}
+  );
+};
 
 export default App;

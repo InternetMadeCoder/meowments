@@ -3,20 +3,28 @@ import axios from 'axios';
 const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dlm7van7p';
 const CLOUDINARY_UPLOAD_PRESET = 'meowments_upload';
 const CLOUDINARY_FOLDER = 'meowments';
+const CLOUDINARY_API_KEY = '419321886338194';
+const CLOUDINARY_API_SECRET = 'gKW6lQHGDIeGOxlA1ZQ8ksELPtI';
 
 export const api = {
   async fetchPosts() {
-    const response = await axios.get(`${CLOUDINARY_URL}/resources/image/list/${CLOUDINARY_FOLDER}`, {
-      params: {
-        type: 'upload',
-        prefix: CLOUDINARY_FOLDER,
-        max_results: 500,
-      },
-      headers: {
-        Authorization: `Basic ${btoa('419321886338194:gKW6lQHGDIeGOxlA1ZQ8ksELPtI')}`
-      }
-    });
-    return response.data.resources;
+    try {
+      const response = await axios.get(`${CLOUDINARY_URL}/resources/search`, {
+        params: {
+          type: 'upload',
+          prefix: CLOUDINARY_FOLDER,
+          max_results: 500,
+        },
+        auth: {
+          username: CLOUDINARY_API_KEY,
+          password: CLOUDINARY_API_SECRET
+        }
+      });
+      return response.data.resources || [];
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return [];
+    }
   },
 
   async uploadPost(file, description) {
@@ -36,8 +44,9 @@ export const api = {
   async deletePost(publicId) {
     return axios.delete(`${CLOUDINARY_URL}/resources/image/upload`, {
       params: { public_ids: [publicId] },
-      headers: {
-        Authorization: `Basic ${btoa('419321886338194:gKW6lQHGDIeGOxlA1ZQ8ksELPtI')}`
+      auth: {
+        username: CLOUDINARY_API_KEY,
+        password: CLOUDINARY_API_SECRET
       }
     });
   }

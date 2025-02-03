@@ -6,10 +6,12 @@ const PostsContext = createContext();
 export const PostsProvider = ({ children }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const resources = await api.fetchPosts();
       const formattedPosts = resources
         .map(resource => ({
@@ -24,6 +26,7 @@ export const PostsProvider = ({ children }) => {
       setPosts(formattedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
+      setError('Failed to load posts. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -63,6 +66,7 @@ export const PostsProvider = ({ children }) => {
       addPost, 
       deletePost, 
       loading,
+      error,
       refreshPosts: fetchPosts 
     }}>
       {children}
