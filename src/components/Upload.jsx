@@ -146,7 +146,7 @@ const Upload = () => {
                 focus:border-rose-500 focus:ring-1 focus:ring-rose-500
                 text-gray-900 placeholder-gray-400 bg-white"
               rows="3"
-              placeholder="Tell us about this moment..."
+              placeholder="Tell us about this meowment..."
             />
           </div>
 
