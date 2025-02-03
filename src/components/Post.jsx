@@ -36,7 +36,7 @@ const Post = ({ id, color = "rose", description = "", imageUrl, deleteUrl }) => 
 
   return (
     <motion.div
-      className="relative group"
+      className="relative group w-[320px]" // Add fixed width to parent
       onMouseMove={handleMouseMove}
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
@@ -64,7 +64,7 @@ const Post = ({ id, color = "rose", description = "", imageUrl, deleteUrl }) => 
 
       {/* Card */}
       <motion.div
-        className="relative bg-white rounded-xl overflow-hidden will-change-transform"
+        className="relative bg-white rounded-xl overflow-hidden will-change-transform w-full"
         whileHover={{ 
           scale: 1.05,
           transition: { 
@@ -106,23 +106,29 @@ const Post = ({ id, color = "rose", description = "", imageUrl, deleteUrl }) => 
           </svg>
         </motion.button>
 
-        <div className="w-72"> {/* Increased width from w-64 to w-72 */}
+        <div className="w-full"> {/* Remove w-72 class */}
           {/* Image Area - Removed overlay effects */}
-          <div className="w-full h-72 relative overflow-hidden"> {/* Increased height from h-56 to h-72 */}
+          <div className="aspect-square w-full relative overflow-hidden"> {/* Replace height with aspect ratio */}
             {imageUrl ? (
               <img 
                 src={imageUrl} 
                 alt={description}
                 className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                onError={(e) => {
+                  console.error('Image failed to load:', imageUrl);
+                  e.target.src = 'https://via.placeholder.com/400x400?text=Image+Not+Found';
+                }}
               />
             ) : (
-              <div className={`w-full h-full bg-${color}-200`} />
+              <div className={`w-full h-full bg-${color}-200 flex items-center justify-center`}>
+                <span className="text-gray-500">No image available</span>
+              </div>
             )}
           </div>
           
           {/* Enhanced Bottom Section */}
           <motion.div 
-            className="p-4 bg-white"
+            className="p-4 bg-white h-[80px] overflow-hidden" // Add fixed height to description area
             transition={{ duration: 0.2 }}
           >
             <div className="flex items-start justify-between gap-2">

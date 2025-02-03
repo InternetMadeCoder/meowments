@@ -10,27 +10,17 @@ export const PostsProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const posts = await api.fetchPosts();
-      // No need to format posts since they're already in the correct format
-      setPosts(posts);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      setError('Failed to load posts. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     const postsRef = ref(db, 'posts');
     const unsubscribe = onValue(postsRef, (snapshot) => {
       if (snapshot.exists()) {
-        const postsData = Object.values(snapshot.val());
-        setPosts(postsData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        const postsData = Object.values(snapshot.val())
+          .map(post => ({
+            ...post,
+            timestamp: post.timestamp || new Date().toISOString()
+          }))
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setPosts(postsData);
       } else {
         setPosts([]);
       }
@@ -42,19 +32,11 @@ export const PostsProvider = ({ children }) => {
 
   const addPost = async (postData) => {
     try {
-      // First update the local state with the complete post data
-      setPosts(prevPosts => [{
-        ...postData,
-        timestamp: new Date().toISOString()
-      }, ...prevPosts]);
-      
-      // Update localStorage
-      const storedPosts = JSON.parse(localStorage.getItem('posts') || '[]');
-      storedPosts.unshift(postData);
-      localStorage.setItem('posts', JSON.stringify(storedPosts));
+      // Firebase will handle the state update through real-time listener
+      // No need to update posts state directly
+      await api.uploadPost(postData.file, postData.description);
     } catch (error) {
       console.error('Error adding post:', error);
-      setPosts(prevPosts => prevPosts.filter(post => post.id !== postData.id));
       throw error;
     }
   };
@@ -82,8 +64,7 @@ export const PostsProvider = ({ children }) => {
       addPost, 
       deletePost, 
       loading,
-      error,
-      refreshPosts: fetchPosts 
+      error
     }}>
       {children}
     </PostsContext.Provider>

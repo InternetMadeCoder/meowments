@@ -40,7 +40,7 @@ export const api = {
       
       const newPost = {
         id: imageData.id,
-        imageUrl: imageData.url,
+        imageUrl: imageData.display_url, // Changed from url to display_url
         description,
         timestamp: new Date().toISOString(),
         deleteUrl: imageData.delete_url
