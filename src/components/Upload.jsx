@@ -3,6 +3,7 @@ import axios from 'axios';
 import { usePosts } from '../context/PostsContext';
 import { useNavigate } from 'react-router-dom';
 import Modal from './Modal';
+import { api } from '../utils/api';
 
 const Upload = () => {
   const [file, setFile] = useState(null);
@@ -50,21 +51,11 @@ const Upload = () => {
     setIsUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'meowments_upload');
-      formData.append('folder', 'meowments');
-      formData.append('context', `description=${description}`);
-      formData.append('timestamp', Date.now().toString());
-
-      const response = await axios.post(
-        'https://api.cloudinary.com/v1_1/dlm7van7p/image/upload',
-        formData
-      );
-
+      const uploadResult = await api.uploadPost(file, description);
+      
       const newPost = {
-        id: response.data.public_id,
-        imageUrl: response.data.secure_url,
+        id: uploadResult.public_id,
+        imageUrl: uploadResult.secure_url,
         description,
         color: 'rose',
         timestamp: new Date().toISOString()

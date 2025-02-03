@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../utils/api';
 
 const PostsContext = createContext();
 
@@ -7,28 +7,11 @@ export const PostsProvider = ({ children }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all posts from Cloudinary
   const fetchPosts = async () => {
     try {
-      const response = await axios.get(
-        `https://api.cloudinary.com/v1_1/dlm7van7p/resources/search`,
-        {
-          params: {
-            type: 'upload',
-            prefix: 'meowments/',
-            max_results: 500,
-            context: true,
-            metadata: true
-          },
-          auth: {
-            username: '419321886338194',
-            password: 'gKW6lQHGDIeGOxlA1ZQ8ksELPtI'
-          }
-        }
-      );
-
-      const formattedPosts = response.data.resources
-        .filter(resource => resource.folder === 'meowments')
+      setLoading(true);
+      const resources = await api.fetchPosts();
+      const formattedPosts = resources
         .map(resource => ({
           id: resource.public_id,
           imageUrl: resource.secure_url,
@@ -46,29 +29,26 @@ export const PostsProvider = ({ children }) => {
     }
   };
 
-  // Initial fetch and set up refresh interval
   useEffect(() => {
     fetchPosts();
-    const interval = setInterval(fetchPosts, 30000); // Refresh every 30 seconds
+    // Poll for updates every 10 seconds
+    const interval = setInterval(fetchPosts, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const addPost = async (newPost) => {
-    setPosts(prevPosts => [newPost, ...prevPosts]);
+  const addPost = async (postData) => {
+    try {
+      setPosts(prevPosts => [postData, ...prevPosts]);
+      await fetchPosts(); // Refresh posts after adding
+    } catch (error) {
+      console.error('Error adding post:', error);
+      throw error;
+    }
   };
 
   const deletePost = async (publicId) => {
     try {
-      await axios.delete(
-        `https://api.cloudinary.com/v1_1/dlm7van7p/resources/image/upload`,
-        {
-          params: { public_ids: [publicId] },
-          auth: {
-            username: '419321886338194',
-            password: 'gKW6lQHGDIeGOxlA1ZQ8ksELPtI'
-          }
-        }
-      );
+      await api.deletePost(publicId);
       setPosts(prevPosts => prevPosts.filter(post => post.id !== publicId));
       return true;
     } catch (error) {
@@ -78,7 +58,13 @@ export const PostsProvider = ({ children }) => {
   };
 
   return (
-    <PostsContext.Provider value={{ posts, addPost, deletePost, loading, refreshPosts: fetchPosts }}>
+    <PostsContext.Provider value={{ 
+      posts, 
+      addPost, 
+      deletePost, 
+      loading,
+      refreshPosts: fetchPosts 
+    }}>
       {children}
     </PostsContext.Provider>
   );
