@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../utils/api';
+import { ref, onValue } from 'firebase/database';
+import { db } from '../utils/firebase';
 
 const PostsContext = createContext();
 
@@ -24,10 +26,18 @@ export const PostsProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchPosts();
-    // Poll for updates every 60 seconds instead of 30
-    const interval = setInterval(fetchPosts, 60000);
-    return () => clearInterval(interval);
+    const postsRef = ref(db, 'posts');
+    const unsubscribe = onValue(postsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const postsData = Object.values(snapshot.val());
+        setPosts(postsData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+      } else {
+        setPosts([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const addPost = async (postData) => {

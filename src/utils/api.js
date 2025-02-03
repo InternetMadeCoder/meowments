@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { ref, set, remove, get, child } from 'firebase/database';
+import { db } from './firebase';
 
 const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
 const IMGBB_URL = 'https://api.imgbb.com/1';
@@ -6,9 +8,13 @@ const IMGBB_URL = 'https://api.imgbb.com/1';
 export const api = {
   async fetchPosts() {
     try {
-      // Note: ImgBB doesn't have a fetch endpoint, so we'll store the posts in localStorage
-      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
-      return posts;
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, 'posts'));
+      if (snapshot.exists()) {
+        const posts = Object.values(snapshot.val());
+        return posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching posts:', error);
       return [];
@@ -17,7 +23,7 @@ export const api = {
 
   async uploadPost(file, description) {
     try {
-      // Convert file to base64
+      // Upload to ImgBB
       const base64String = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result.split(',')[1]);
@@ -34,16 +40,14 @@ export const api = {
       
       const newPost = {
         id: imageData.id,
-        imageUrl: imageData.url,  // Use direct URL from ImgBB
+        imageUrl: imageData.url,
         description,
         timestamp: new Date().toISOString(),
         deleteUrl: imageData.delete_url
       };
 
-      // Store in localStorage
-      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
-      posts.unshift(newPost);
-      localStorage.setItem('posts', JSON.stringify(posts));
+      // Save to Firebase
+      await set(ref(db, `posts/${newPost.id}`), newPost);
 
       return newPost;
     } catch (error) {
@@ -54,19 +58,7 @@ export const api = {
 
   async deletePost(postId) {
     try {
-      // Get current posts from localStorage
-      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
-      
-      // Find the post to be deleted
-      const postToDelete = posts.find(post => post.id === postId);
-      if (!postToDelete) {
-        throw new Error('Post not found');
-      }
-
-      // Remove from localStorage
-      const updatedPosts = posts.filter(post => post.id !== postId);
-      localStorage.setItem('posts', JSON.stringify(updatedPosts));
-
+      await remove(ref(db, `posts/${postId}`));
       return true;
     } catch (error) {
       console.error('Delete error:', error);
