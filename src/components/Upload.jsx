@@ -51,18 +51,7 @@ const Upload = () => {
     setIsUploading(true);
 
     try {
-      const uploadResult = await api.uploadPost(file, description);
-      
-      const newPost = {
-        id: uploadResult.id,
-        imageUrl: uploadResult.imageUrl, // Changed from uploadResult.link
-        description: description,
-        color: 'rose',
-        timestamp: new Date().toISOString(),
-        deleteUrl: uploadResult.deleteUrl
-      };
-
-      await addPost(newPost);
+      await addPost({ file, description });
       setShowSuccessModal(true);
       setFile(null);
       setPreview(null);
