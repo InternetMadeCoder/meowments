@@ -54,11 +54,12 @@ const Upload = () => {
       const uploadResult = await api.uploadPost(file, description);
       
       const newPost = {
-        id: uploadResult.public_id,
-        imageUrl: uploadResult.secure_url,
-        description,
+        id: uploadResult.id,
+        imageUrl: uploadResult.imageUrl, // Changed from uploadResult.link
+        description: description,
         color: 'rose',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        deleteUrl: uploadResult.deleteUrl
       };
 
       await addPost(newPost);
@@ -66,11 +67,10 @@ const Upload = () => {
       setFile(null);
       setPreview(null);
       setDescription('');
-      setIsUploading(false);
-
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      alert(error.message || 'Upload failed. Please try again.');
+    } finally {
       setIsUploading(false);
     }
   };

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { usePosts } from '../context/PostsContext';
 import { ConfirmationModal } from './Modal';
 
-const Post = ({ id, color = "rose", description = "A cute moment...", imageUrl }) => {
+const Post = ({ id, color = "rose", description = "", imageUrl, deleteUrl }) => {
   const { likedPosts, toggleLike } = useLikes();
   const { deletePost } = usePosts();
   const isLiked = likedPosts.some(post => post.id === id)
@@ -20,8 +20,14 @@ const Post = ({ id, color = "rose", description = "A cute moment...", imageUrl }
 
   const handleDelete = async () => {
     try {
+      setShowDeleteModal(false); // Close modal first
       await deletePost(id);
       console.log('Post deleted successfully:', id);
+      
+      // Store the deleteUrl for manual cleanup later
+      const deletionUrls = JSON.parse(localStorage.getItem('deletionUrls') || '[]');
+      deletionUrls.push(deleteUrl);
+      localStorage.setItem('deletionUrls', JSON.stringify(deletionUrls));
     } catch (error) {
       console.error('Failed to delete post:', error);
       alert('Failed to delete post. Please try again.');

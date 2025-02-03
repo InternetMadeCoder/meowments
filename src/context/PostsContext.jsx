@@ -12,18 +12,9 @@ export const PostsProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const resources = await api.fetchPosts();
-      const formattedPosts = resources
-        .map(resource => ({
-          id: resource.public_id,
-          imageUrl: resource.secure_url,
-          description: resource.context?.description || '',
-          color: 'rose',
-          timestamp: resource.created_at
-        }))
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      setPosts(formattedPosts);
+      const posts = await api.fetchPosts();
+      // No need to format posts since they're already in the correct format
+      setPosts(posts);
     } catch (error) {
       console.error('Error fetching posts:', error);
       setError('Failed to load posts. Please try again later.');
@@ -34,27 +25,42 @@ export const PostsProvider = ({ children }) => {
 
   useEffect(() => {
     fetchPosts();
-    // Poll for updates every 10 seconds
-    const interval = setInterval(fetchPosts, 10000);
+    // Poll for updates every 60 seconds instead of 30
+    const interval = setInterval(fetchPosts, 60000);
     return () => clearInterval(interval);
   }, []);
 
   const addPost = async (postData) => {
     try {
-      setPosts(prevPosts => [postData, ...prevPosts]);
-      await fetchPosts(); // Refresh posts after adding
+      // First update the local state with the complete post data
+      setPosts(prevPosts => [{
+        ...postData,
+        timestamp: new Date().toISOString()
+      }, ...prevPosts]);
+      
+      // Update localStorage
+      const storedPosts = JSON.parse(localStorage.getItem('posts') || '[]');
+      storedPosts.unshift(postData);
+      localStorage.setItem('posts', JSON.stringify(storedPosts));
     } catch (error) {
       console.error('Error adding post:', error);
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postData.id));
       throw error;
     }
   };
 
-  const deletePost = async (publicId) => {
+  const deletePost = async (postId) => {
     try {
-      await api.deletePost(publicId);
-      setPosts(prevPosts => prevPosts.filter(post => post.id !== publicId));
+      // Remove from local state first
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      
+      // Then remove from localStorage
+      await api.deletePost(postId);
       return true;
     } catch (error) {
+      // Revert state if deletion fails
+      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
+      setPosts(posts);
       console.error('Error deleting post:', error);
       throw error;
     }

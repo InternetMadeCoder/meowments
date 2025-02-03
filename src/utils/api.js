@@ -1,26 +1,14 @@
 import axios from 'axios';
 
-const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dlm7van7p';
-const CLOUDINARY_UPLOAD_PRESET = 'meowments_upload';
-const CLOUDINARY_FOLDER = 'meowments';
-const CLOUDINARY_API_KEY = '419321886338194';
-const CLOUDINARY_API_SECRET = 'gKW6lQHGDIeGOxlA1ZQ8ksELPtI';
+const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
+const IMGBB_URL = 'https://api.imgbb.com/1';
 
 export const api = {
   async fetchPosts() {
     try {
-      const response = await axios.get(`${CLOUDINARY_URL}/resources/search`, {
-        params: {
-          type: 'upload',
-          prefix: CLOUDINARY_FOLDER,
-          max_results: 500,
-        },
-        auth: {
-          username: CLOUDINARY_API_KEY,
-          password: CLOUDINARY_API_SECRET
-        }
-      });
-      return response.data.resources || [];
+      // Note: ImgBB doesn't have a fetch endpoint, so we'll store the posts in localStorage
+      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
+      return posts;
     } catch (error) {
       console.error('Error fetching posts:', error);
       return [];
@@ -28,26 +16,61 @@ export const api = {
   },
 
   async uploadPost(file, description) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', CLOUDINARY_FOLDER);
-    formData.append('context', `description=${description}`);
+    try {
+      // Convert file to base64
+      const base64String = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(file);
+      });
 
-    const response = await axios.post(
-      `${CLOUDINARY_URL}/image/upload`,
-      formData
-    );
-    return response.data;
+      const formData = new FormData();
+      formData.append('key', IMGBB_API_KEY);
+      formData.append('image', base64String);
+      formData.append('name', file.name);
+
+      const response = await axios.post(`${IMGBB_URL}/upload`, formData);
+      const imageData = response.data.data;
+      
+      const newPost = {
+        id: imageData.id,
+        imageUrl: imageData.url,  // Use direct URL from ImgBB
+        description,
+        timestamp: new Date().toISOString(),
+        deleteUrl: imageData.delete_url
+      };
+
+      // Store in localStorage
+      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
+      posts.unshift(newPost);
+      localStorage.setItem('posts', JSON.stringify(posts));
+
+      return newPost;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw new Error('Upload failed. Please try again.');
+    }
   },
 
-  async deletePost(publicId) {
-    return axios.delete(`${CLOUDINARY_URL}/resources/image/upload`, {
-      params: { public_ids: [publicId] },
-      auth: {
-        username: CLOUDINARY_API_KEY,
-        password: CLOUDINARY_API_SECRET
+  async deletePost(postId) {
+    try {
+      // Get current posts from localStorage
+      const posts = JSON.parse(localStorage.getItem('posts') || '[]');
+      
+      // Find the post to be deleted
+      const postToDelete = posts.find(post => post.id === postId);
+      if (!postToDelete) {
+        throw new Error('Post not found');
       }
-    });
+
+      // Remove from localStorage
+      const updatedPosts = posts.filter(post => post.id !== postId);
+      localStorage.setItem('posts', JSON.stringify(updatedPosts));
+
+      return true;
+    } catch (error) {
+      console.error('Delete error:', error);
+      throw error;
+    }
   }
 };
