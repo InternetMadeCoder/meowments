@@ -53,18 +53,24 @@ const Upload = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', 'meowments_upload');
+      formData.append('folder', 'meowments');
+      formData.append('context', `description=${description}`);
+      formData.append('timestamp', Date.now().toString());
 
       const response = await axios.post(
         'https://api.cloudinary.com/v1_1/dlm7van7p/image/upload',
         formData
       );
 
-      await addPost({
+      const newPost = {
+        id: response.data.public_id,
         imageUrl: response.data.secure_url,
         description,
-        color: 'rose'
-      });
+        color: 'rose',
+        timestamp: new Date().toISOString()
+      };
 
+      await addPost(newPost);
       setShowSuccessModal(true);
       setFile(null);
       setPreview(null);

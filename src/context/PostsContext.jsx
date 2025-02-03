@@ -1,39 +1,75 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 const PostsContext = createContext();
 
 export const PostsProvider = ({ children }) => {
-  const [posts, setPosts] = useState(() => {
-    const savedPosts = localStorage.getItem('meowments_posts');
-    return savedPosts ? JSON.parse(savedPosts) : [];
-  });
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    localStorage.setItem('meowments_posts', JSON.stringify(posts));
-  }, [posts]);
+  // Fetch all posts from Cloudinary
+  const fetchPosts = async () => {
+    try {
+      const response = await axios.get(
+        `https://api.cloudinary.com/v1_1/dlm7van7p/resources/search`,
+        {
+          params: {
+            type: 'upload',
+            prefix: 'meowments/',
+            max_results: 500,
+            context: true,
+            metadata: true
+          },
+          auth: {
+            username: '419321886338194',
+            password: 'gKW6lQHGDIeGOxlA1ZQ8ksELPtI'
+          }
+        }
+      );
 
-  const addPost = (newPost) => {
-    setPosts(prevPosts => [
-      { ...newPost, id: Date.now() },
-      ...prevPosts
-    ]);
+      const formattedPosts = response.data.resources
+        .filter(resource => resource.folder === 'meowments')
+        .map(resource => ({
+          id: resource.public_id,
+          imageUrl: resource.secure_url,
+          description: resource.context?.description || '',
+          color: 'rose',
+          timestamp: resource.created_at
+        }))
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      setPosts(formattedPosts);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deletePost = async (postId) => {
+  // Initial fetch and set up refresh interval
+  useEffect(() => {
+    fetchPosts();
+    const interval = setInterval(fetchPosts, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const addPost = async (newPost) => {
+    setPosts(prevPosts => [newPost, ...prevPosts]);
+  };
+
+  const deletePost = async (publicId) => {
     try {
-      // Update posts state
-      setPosts(prevPosts => {
-        const updatedPosts = prevPosts.filter(post => post.id !== postId);
-        // Update localStorage
-        localStorage.setItem('meowments_posts', JSON.stringify(updatedPosts));
-        return updatedPosts;
-      });
-
-      // Also remove from likes if present
-      const likedPosts = JSON.parse(localStorage.getItem('meowments_likes') || '[]');
-      const updatedLikedPosts = likedPosts.filter(post => post.id !== postId);
-      localStorage.setItem('meowments_likes', JSON.stringify(updatedLikedPosts));
-
+      await axios.delete(
+        `https://api.cloudinary.com/v1_1/dlm7van7p/resources/image/upload`,
+        {
+          params: { public_ids: [publicId] },
+          auth: {
+            username: '419321886338194',
+            password: 'gKW6lQHGDIeGOxlA1ZQ8ksELPtI'
+          }
+        }
+      );
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== publicId));
       return true;
     } catch (error) {
       console.error('Error deleting post:', error);
@@ -41,15 +77,8 @@ export const PostsProvider = ({ children }) => {
     }
   };
 
-  // Make sure deletePost is included in the context value
-  const contextValue = {
-    posts,
-    addPost,
-    deletePost
-  };
-
   return (
-    <PostsContext.Provider value={contextValue}>
+    <PostsContext.Provider value={{ posts, addPost, deletePost, loading, refreshPosts: fetchPosts }}>
       {children}
     </PostsContext.Provider>
   );
