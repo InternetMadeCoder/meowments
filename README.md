@@ -3,7 +3,7 @@
     <h1>MeowMents 🐾</h1>
   </a>
 </p>
-
+ 
 Welcome to **[MeowMents](https://meowments.netlify.app/)**—a heartwarming app where we capture and share the cutest moments of our furry friends. Whether it's a fluffy kitten or a playful puppy, MeowMents is here to brighten your day with adorable animal content. 🌸🐱
 
 ## Features ✨
